@@ -1,0 +1,12 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
+  "name": "io.github.jabran/ifrs16-lease-agent",
+  "title": "IFRS 16 Lease Accounting Agent",
+  "description": "Lease identification, lessee schedules, modifications, lessor, sale and leaseback and...",
+  "version": "1.0.0",
+  "repository": {
+    "url": "https://github.com/jabran/ifrs-mcp-agents",
+    "source": "github",
+    "subfolder": "ifrs16-lease-agent"
+  }
+}

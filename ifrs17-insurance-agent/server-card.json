@@ -1,0 +1,658 @@
+{
+  "serverInfo": {
+    "name": "ifrs17-insurance-agent",
+    "title": "IFRS 17 Insurance Contracts Agent",
+    "version": "1.0.0"
+  },
+  "description": "Scope and model choice, level of aggregation, GMM initial measurement, CSM roll-forward, PAA, reinsurance held and transition. Demo and educational use only. No liability assumed for results. Not professional advice.",
+  "transport": {
+    "type": "stdio",
+    "command": "node",
+    "args": [
+      "dist/server.mjs"
+    ]
+  },
+  "capabilities": {
+    "tools": {},
+    "prompts": {},
+    "resources": {}
+  },
+  "tools": [
+    {
+      "name": "agent_about",
+      "title": "IFRS 17 Insurance Contracts Agent: what this agent covers",
+      "description": "Lists the standards and tools in this agent, the order to use them in, and the terms of use.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ifrs17_scope_and_model",
+      "title": "IFRS 17: Scope & measurement model (3-8, 53, B101)",
+      "description": "Tests whether a contract is within IFRS 17 (significant insurance risk, scope exclusions and options) and selects the measurement model: the variable fee approach when the three direct participation criteria are met (B101; not for reinsurance), the premium allocation approach when eligible (53), otherwise the general measurement model.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "product": {
+            "type": "string",
+            "description": "Product / portfolio",
+            "default": "Product"
+          },
+          "significantInsuranceRisk": {
+            "type": "boolean",
+            "description": "Transfers significant insurance risk (B17-B23) [IFRS 17.Appendix A, IFRS 17.B17]",
+            "default": true
+          },
+          "excludedType": {
+            "type": "string",
+            "enum": [
+              "none",
+              "product_warranty",
+              "employee_benefit",
+              "residual_value_guarantee",
+              "financial_guarantee",
+              "credit_card"
+            ],
+            "description": "Scope exclusion [IFRS 17.7] Options: none (None); product_warranty (Product warranty by manufacturer/retailer); employee_benefit (Employer's employee benefit obligation); residual_value_guarantee (Residual value guarantee / lessee's guarantee); financial_guarantee (Financial guarantee (not previously asserted as insurance)); credit_card (Credit card contract not pricing individual insurance risk)",
+            "default": "none"
+          },
+          "fixedFeeServiceContract": {
+            "type": "boolean",
+            "description": "Fixed-fee service contract (option to apply IFRS 15) [IFRS 17.8]",
+            "default": false
+          },
+          "isReinsuranceHeld": {
+            "type": "boolean",
+            "description": "Reinsurance contract held [IFRS 17.60]",
+            "default": false
+          },
+          "coverageOneYearOrLess": {
+            "type": "boolean",
+            "description": "Coverage period of each contract is one year or less [IFRS 17.53(b)]",
+            "default": false
+          },
+          "paaReasonableApproximation": {
+            "type": "boolean",
+            "description": "PAA would not differ materially from GMM [IFRS 17.53(a), IFRS 17.54]",
+            "default": false
+          },
+          "shareOfClearlyIdentifiedPool": {
+            "type": "boolean",
+            "description": "VFA (a): policyholder participates in a share of a clearly identified pool of underlying items [IFRS 17.B101(a)]",
+            "default": false
+          },
+          "substantialShareOfFairValueReturns": {
+            "type": "boolean",
+            "description": "VFA (b): entity expects to pay a substantial share of fair value returns [IFRS 17.B101(b)]",
+            "default": false
+          },
+          "substantialProportionVariesWithUnderlying": {
+            "type": "boolean",
+            "description": "VFA (c): substantial proportion of payments varies with underlying items [IFRS 17.B101(c)]",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ifrs17_level_of_aggregation",
+      "title": "IFRS 17: Level of aggregation (14-24)",
+      "description": "Assigns contracts (or sets of contracts) to groups by portfolio, annual cohort (no more than one year apart, 22) and profitability at initial recognition: onerous (fulfilment cash flows a net outflow), no significant possibility of becoming onerous, and remaining (16).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "contracts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "contract": {
+                  "type": "string",
+                  "description": "Contract / set"
+                },
+                "portfolio": {
+                  "type": "string",
+                  "description": "Portfolio (similar risks, managed together) [IFRS 17.14]"
+                },
+                "issueYear": {
+                  "type": "number",
+                  "description": "Issue year (cohort) [IFRS 17.22]"
+                },
+                "pvInflows": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "PV of future cash inflows"
+                },
+                "pvOutflows": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "PV of future cash outflows"
+                },
+                "riskAdjustment": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Risk adjustment",
+                  "default": 0
+                },
+                "noSignificantPossibilityOfOnerous": {
+                  "type": "boolean",
+                  "description": "No significant possibility of becoming onerous [IFRS 17.16(b), IFRS 17.19]",
+                  "default": false
+                }
+              },
+              "required": [
+                "contract",
+                "portfolio",
+                "issueYear",
+                "pvInflows",
+                "pvOutflows"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1,
+            "description": "Contracts or sets of contracts"
+          }
+        },
+        "required": [
+          "contracts"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ifrs17_gmm_initial_measurement",
+      "title": "IFRS 17: GMM initial measurement: FCF & CSM (32-38, 47)",
+      "description": "Measures a group at initial recognition under the general measurement model: present value of future cash inflows and outflows (premiums, claims, expenses, acquisition cash flows) at the discount rate, plus the risk adjustment, giving fulfilment cash flows; the CSM eliminates any day-one gain (including derecognition of an asset for acquisition cash flows); a net outflow is a loss and loss component (38, 47). Reproduces the structure of IFRS 17 Illustrative Example 1.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "group": {
+            "type": "string",
+            "description": "Group",
+            "default": "Group"
+          },
+          "discountRate": {
+            "type": "number",
+            "minimum": -0.05,
+            "maximum": 1,
+            "description": "Discount rate (annual, decimal) [IFRS 17.36]"
+          },
+          "riskAdjustment": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Risk adjustment for non-financial risk [IFRS 17.37]",
+            "default": 0
+          },
+          "acquisitionCashFlowAssetDerecognised": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Asset for acquisition cash flows derecognised at recognition [IFRS 17.38(b), IFRS 17.28C]",
+            "default": 0
+          },
+          "cashFlows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "year": {
+                  "type": "number",
+                  "minimum": 1,
+                  "description": "Year"
+                },
+                "premiums": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Premiums (inflow)",
+                  "default": 0
+                },
+                "claims": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Claims",
+                  "default": 0
+                },
+                "expenses": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Other expenses",
+                  "default": 0
+                },
+                "acquisition": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Acquisition cash flows",
+                  "default": 0
+                },
+                "timing": {
+                  "type": "string",
+                  "enum": [
+                    "start",
+                    "end"
+                  ],
+                  "description": "Timing Options: start (Start of year); end (End of year)",
+                  "default": "end"
+                }
+              },
+              "required": [
+                "year"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1,
+            "description": "Cash flows"
+          }
+        },
+        "required": [
+          "discountRate",
+          "cashFlows"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ifrs17_csm_rollforward",
+      "title": "IFRS 17: CSM roll-forward & insurance revenue (44, B119-B124)",
+      "description": "Rolls forward the CSM of a GMM group for a period: opening balance, new business, interest accretion at the locked-in rate, changes in fulfilment cash flows relating to future service (excess over the CSM becomes a loss), currency effects, and release by coverage units provided relative to provided plus expected future units (B119). Builds insurance revenue (expected claims and expenses, risk adjustment release, CSM release, acquisition cash flow allocation) and the insurance service result.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "group": {
+            "type": "string",
+            "description": "Group",
+            "default": "Group"
+          },
+          "openingCsm": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Opening CSM",
+            "default": 0
+          },
+          "openingLossComponent": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Opening loss component",
+            "default": 0
+          },
+          "newBusinessCsm": {
+            "type": "number",
+            "minimum": 0,
+            "description": "CSM of contracts added to the group",
+            "default": 0
+          },
+          "lockedInRate": {
+            "type": "number",
+            "minimum": -0.05,
+            "maximum": 1,
+            "description": "Locked-in discount rate (decimal) [IFRS 17.44(b), IFRS 17.B72(b)]"
+          },
+          "fcfChangeFutureService": {
+            "type": "number",
+            "description": "Change in FCF relating to future service (+ increase = unfavourable) [IFRS 17.44(c), IFRS 17.B96]",
+            "default": 0
+          },
+          "fxEffect": {
+            "type": "number",
+            "description": "Currency exchange differences [IFRS 17.44(d)]",
+            "default": 0
+          },
+          "coverageUnitsProvided": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Coverage units provided in the period [IFRS 17.B119]"
+          },
+          "coverageUnitsFuture": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Coverage units expected in future periods"
+          },
+          "expectedClaimsAndExpensesReleased": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Expected claims and expenses for the period (excl. investment components) [IFRS 17.B124(a)]",
+            "default": 0
+          },
+          "riskAdjustmentReleased": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Risk adjustment released for the period [IFRS 17.B124(b)]",
+            "default": 0
+          },
+          "acquisitionCashFlowsAllocated": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Allocation of acquisition cash flows [IFRS 17.B125]",
+            "default": 0
+          },
+          "actualClaimsAndExpenses": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Actual claims and expenses incurred [IFRS 17.84]",
+            "default": 0
+          }
+        },
+        "required": [
+          "lockedInRate",
+          "coverageUnitsProvided",
+          "coverageUnitsFuture"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ifrs17_paa_measurement",
+      "title": "IFRS 17: Premium allocation approach (53-59)",
+      "description": "Measures a PAA group: liability for remaining coverage (premiums received less acquisition cash flows, plus their amortisation, less revenue recognised on the passage of time), the option to expense acquisition cash flows for coverage of one year or less (59(a)), the onerous test when facts and circumstances indicate (57-58), and the liability for incurred claims (fulfilment cash flows, discounting optional when claims are paid within a year, 59(b)).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "group": {
+            "type": "string",
+            "description": "Group",
+            "default": "Motor 2026 cohort"
+          },
+          "premium": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Total premium for the coverage period"
+          },
+          "premiumsReceived": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Premiums received to date"
+          },
+          "coverageMonths": {
+            "type": "number",
+            "minimum": 1,
+            "description": "Coverage period (months)"
+          },
+          "monthsElapsed": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Months of coverage elapsed [IFRS 17.B126]"
+          },
+          "acquisitionCashFlows": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Insurance acquisition cash flows paid",
+            "default": 0
+          },
+          "expenseAcquisitionWhenIncurred": {
+            "type": "boolean",
+            "description": "Expense acquisition cash flows when incurred (coverage ≤ 1 year) [IFRS 17.59(a)]",
+            "default": false
+          },
+          "onerousIndicators": {
+            "type": "boolean",
+            "description": "Facts and circumstances indicate the group is onerous [IFRS 17.57]",
+            "default": false
+          },
+          "remainingCoverageFulfilmentCashFlows": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Fulfilment cash flows for remaining coverage (for the onerous test) [IFRS 17.57, IFRS 17.58]",
+            "default": 0
+          },
+          "incurredClaimsUndiscounted": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Incurred claims (undiscounted best estimate)",
+            "default": 0
+          },
+          "incurredClaimsRiskAdjustment": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Risk adjustment on incurred claims",
+            "default": 0
+          },
+          "claimsPaidWithinOneYear": {
+            "type": "boolean",
+            "description": "Claims expected to be paid within one year (no discounting needed) [IFRS 17.59(b)]",
+            "default": true
+          },
+          "claimsDiscountFactor": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1.5,
+            "description": "Discount factor for incurred claims (if discounting)",
+            "default": 1
+          }
+        },
+        "required": [
+          "premium",
+          "premiumsReceived",
+          "coverageMonths",
+          "monthsElapsed"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ifrs17_reinsurance_held",
+      "title": "IFRS 17: Reinsurance contracts held (60-70A)",
+      "description": "Measures a group of reinsurance contracts held at initial recognition: fulfilment cash flows from the cedant's perspective (PV of recoveries less ceded premiums, risk adjustment transferred, non-performance risk), the CSM as the net cost or net gain of purchasing reinsurance (65; net cost for past events expensed), and the loss-recovery component and income when onerous underlying contracts are recognised (66A-66B).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "treaty": {
+            "type": "string",
+            "description": "Treaty",
+            "default": "Quota share"
+          },
+          "pvRecoveries": {
+            "type": "number",
+            "minimum": 0,
+            "description": "PV of expected recoveries"
+          },
+          "pvCededPremiums": {
+            "type": "number",
+            "minimum": 0,
+            "description": "PV of ceded premiums"
+          },
+          "riskAdjustmentTransferred": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Risk adjustment: risk transferred to the reinsurer [IFRS 17.64]",
+            "default": 0
+          },
+          "nonPerformanceRisk": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Effect of reinsurer non-performance risk [IFRS 17.63]",
+            "default": 0
+          },
+          "netCostRelatesToPastEvents": {
+            "type": "boolean",
+            "description": "Net cost relates to events before purchase [IFRS 17.65A]",
+            "default": false
+          },
+          "underlyingOnerousLoss": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Loss recognised on onerous underlying contracts",
+            "default": 0
+          },
+          "percentageOfClaimsRecovered": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Percentage of claims on the underlying contracts expected to be recovered (decimal) [IFRS 17.B119D]",
+            "default": 0
+          },
+          "enteredBeforeOrWithUnderlying": {
+            "type": "boolean",
+            "description": "Reinsurance contract entered into before or at the same time as the onerous contracts [IFRS 17.66A]",
+            "default": true
+          }
+        },
+        "required": [
+          "pvRecoveries",
+          "pvCededPremiums"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ifrs17_disclosure_checklist",
+      "title": "IFRS 17: Disclosure checklist (93-132)",
+      "description": "Generates the tailored IFRS 17 disclosure checklist (paragraphs 93-132).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "gmmOrVfa": {
+            "type": "boolean",
+            "description": "Groups measured with the GMM or VFA [IFRS 17.106]",
+            "default": true
+          },
+          "acquisitionAsset": {
+            "type": "boolean",
+            "description": "Assets for insurance acquisition cash flows [IFRS 17.105A]",
+            "default": true
+          },
+          "transitionApproaches": {
+            "type": "boolean",
+            "description": "Modified retrospective or fair value transition approaches used [IFRS 17.114]",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ifrs17_lookup",
+      "title": "IFRS 17: Paragraph & topic lookup",
+      "description": "Searches the IFRS 17 knowledge base by paragraph number or keywords and returns paraphrased requirements with paragraph citations, so answers can be grounded and cited.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Paragraph number or keywords"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ifrs17_transition_fair_value",
+      "title": "IFRS 17: Fair value approach on transition: CSM or loss component (C20-C24)",
+      "description": "Determines the contractual service margin (or loss component) of a group at the transition date as the fair value of the group measured under IFRS 13 less its fulfilment cash flows (present value of net outflows plus the risk adjustment), giving the opening liability, and records the choice for the cumulative amount of insurance finance income or expenses in OCI (nil or determined retrospectively).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "group": {
+            "type": "string",
+            "description": "Group of contracts"
+          },
+          "fairValueOfGroup": {
+            "type": "number",
+            "description": "Fair value of the group (IFRS 13, without the demand deposit floor) [IFRS 17.C20]"
+          },
+          "pvFutureCashOutflowsLessInflows": {
+            "type": "number",
+            "description": "Present value of future cash outflows less inflows [IFRS 17.33, IFRS 17.36]"
+          },
+          "riskAdjustment": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Risk adjustment for non-financial risk [IFRS 17.37]"
+          },
+          "ociAccumulatedChoice": {
+            "type": "string",
+            "enum": [
+              "nil",
+              "retrospective"
+            ],
+            "description": "Cumulative insurance finance amounts in OCI at transition [IFRS 17.C24] Options: nil (Nil (permitted for groups under the fair value approach)); retrospective (Determined retrospectively from reasonable and supportable information)",
+            "default": "nil"
+          },
+          "ociAmount": {
+            "type": "number",
+            "description": "OCI amount if determined retrospectively",
+            "default": 0
+          }
+        },
+        "required": [
+          "group",
+          "fairValueOfGroup",
+          "pvFutureCashOutflowsLessInflows",
+          "riskAdjustment"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ]
+}

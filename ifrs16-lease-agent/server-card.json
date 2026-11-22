@@ -1,0 +1,698 @@
+{
+  "serverInfo": {
+    "name": "ifrs16-lease-agent",
+    "title": "IFRS 16 Lease Accounting Agent",
+    "version": "1.0.0"
+  },
+  "description": "Lease identification, lessee schedules, modifications, lessor, sale and leaseback and disclosures, with paragraph citations. Demo and educational use only. No liability assumed for results. Not professional advice.",
+  "transport": {
+    "type": "stdio",
+    "command": "node",
+    "args": [
+      "dist/server.mjs"
+    ]
+  },
+  "capabilities": {
+    "tools": {},
+    "prompts": {},
+    "resources": {}
+  },
+  "tools": [
+    {
+      "name": "agent_about",
+      "title": "IFRS 16 Lease Accounting Agent: what this agent covers",
+      "description": "Lists the standards and tools in this agent, the order to use them in, and the terms of use.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ifrs16_lease_identification",
+      "title": "IFRS 16: Is it a lease? Exemptions (5-11, B9-B31)",
+      "description": "Applies the IFRS 16 definition of a lease (identified asset without a substantive substitution right; right to obtain substantially all economic benefits; right to direct how and for what purpose the asset is used, or predetermined decisions with the customer operating or having designed it) and the short-term and low-value recognition exemptions (5-8, B3-B8).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "contract": {
+            "type": "string",
+            "description": "Contract",
+            "default": "Contract"
+          },
+          "identifiedAsset": {
+            "type": "boolean",
+            "description": "An asset is explicitly or implicitly specified (or a physically distinct / substantially all capacity portion) [IFRS 16.B13, IFRS 16.B20]",
+            "default": true
+          },
+          "substantiveSubstitutionRight": {
+            "type": "boolean",
+            "description": "Supplier has a substantive substitution right (practical ability and economic benefit) [IFRS 16.B14, IFRS 16.B15]",
+            "default": false
+          },
+          "substantiallyAllEconomicBenefits": {
+            "type": "boolean",
+            "description": "Customer obtains substantially all the economic benefits from use [IFRS 16.B21]",
+            "default": true
+          },
+          "customerDirectsHowAndWhy": {
+            "type": "boolean",
+            "description": "Customer directs how and for what purpose the asset is used [IFRS 16.B24, IFRS 16.B25]",
+            "default": true
+          },
+          "decisionsPredeterminedAndCustomerOperatesOrDesigned": {
+            "type": "boolean",
+            "description": "Decisions predetermined, and the customer operates or designed the asset [IFRS 16.B24(b)]",
+            "default": false
+          },
+          "leaseTermMonths": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Lease term (months) [IFRS 16.B34]"
+          },
+          "hasPurchaseOption": {
+            "type": "boolean",
+            "description": "Contains a purchase option [IFRS 16.Appendix A]",
+            "default": false
+          },
+          "underlyingValueWhenNew": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Value of the underlying asset when new [IFRS 16.B3, IFRS 16.B4]",
+            "default": 0
+          },
+          "lowValueThreshold": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Policy: low-value threshold (e.g. 5,000) [IFRS 16.BC100]",
+            "default": 5000
+          }
+        },
+        "required": [
+          "leaseTermMonths"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ifrs16_lessee_measurement",
+      "title": "IFRS 16: Lessee: lease liability, ROU asset & schedule (22-38)",
+      "description": "Measures a lessee's lease liability at commencement (present value of fixed payments, expected residual value guarantee amounts and a purchase option reasonably certain to be exercised, at the implicit rate or incremental borrowing rate) and the right-of-use asset (liability + prepayments − incentives + initial direct costs + restoration), then builds the liability amortisation, depreciation and annual profit or loss compared with straight-line rent.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "lease": {
+            "type": "string",
+            "description": "Lease",
+            "default": "Office lease"
+          },
+          "commencementDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "Commencement date [IFRS 16.22]"
+          },
+          "endDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "End of lease term (incl. reasonably certain options) [IFRS 16.18, IFRS 16.19]"
+          },
+          "payment": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Fixed payment per period [IFRS 16.27(a)]"
+          },
+          "frequencyMonths": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 12,
+            "description": "Months between payments",
+            "default": 12
+          },
+          "timing": {
+            "type": "string",
+            "enum": [
+              "advance",
+              "arrears"
+            ],
+            "description": "Payment timing Options: advance (In advance); arrears (In arrears)",
+            "default": "arrears"
+          },
+          "discountRate": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Rate implicit in the lease or incremental borrowing rate (annual, decimal) [IFRS 16.26]"
+          },
+          "residualValueGuaranteeExpected": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Amount expected to be payable under a residual value guarantee (at end) [IFRS 16.27(c)]",
+            "default": 0
+          },
+          "purchaseOptionPriceReasonablyCertain": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Purchase option price, if reasonably certain to be exercised (at end) [IFRS 16.27(d)]",
+            "default": 0
+          },
+          "paymentsBeforeCommencement": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Lease payments made at or before commencement (not in the schedule) [IFRS 16.24(b)]",
+            "default": 0
+          },
+          "incentivesReceived": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Lease incentives received [IFRS 16.24(b)]",
+            "default": 0
+          },
+          "initialDirectCosts": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Initial direct costs [IFRS 16.24(c)]",
+            "default": 0
+          },
+          "restorationCostPv": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Restoration / dismantling costs (IAS 37 present value) [IFRS 16.24(d)]",
+            "default": 0
+          },
+          "usefulLifeYears": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Useful life if ownership transfers or purchase option reasonably certain (years; 0 = use lease term) [IFRS 16.32]",
+            "default": 0
+          }
+        },
+        "required": [
+          "commencementDate",
+          "endDate",
+          "payment",
+          "discountRate"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ifrs16_remeasurement_and_modification",
+      "title": "IFRS 16: Lessee: reassessment & modifications (39-46)",
+      "description": "Remeasures a lease liability for a reassessment (index or rate change at the unchanged rate; change in lease term or purchase option at a revised rate) or a modification (separate lease; decrease in scope with proportionate derecognition of the right-of-use asset and a gain or loss; other modifications adjusting the right-of-use asset at a revised rate), with the journal.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "lease": {
+            "type": "string",
+            "description": "Lease",
+            "default": "Lease"
+          },
+          "event": {
+            "type": "string",
+            "enum": [
+              "index_or_rate_change",
+              "term_or_option_change",
+              "modification_separate_lease",
+              "modification_decrease_scope",
+              "modification_other"
+            ],
+            "description": "Event [IFRS 16.39, IFRS 16.44, IFRS 16.45, IFRS 16.46] Options: index_or_rate_change (Reassessment: change in index or rate (unchanged discount rate)); term_or_option_change (Reassessment: change in lease term or purchase option (revised rate)); modification_separate_lease (Modification: separate lease (added asset at stand-alone price)); modification_decrease_scope (Modification: decrease in scope); modification_other (Modification: other (e.g. term extension, price change))"
+          },
+          "effectiveDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "Effective date"
+          },
+          "liabilityCarrying": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Lease liability carrying amount before the event"
+          },
+          "rouCarrying": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Right-of-use asset carrying amount before the event"
+          },
+          "originalRate": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Original discount rate (decimal)"
+          },
+          "revisedRate": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Revised discount rate at effective date (decimal) [IFRS 16.40, IFRS 16.45]",
+            "default": 0
+          },
+          "scopeDecreaseFraction": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Decrease in scope (fraction, e.g. 0.5) [IFRS 16.46(a)]",
+            "default": 0
+          },
+          "newPayment": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Revised payment per period"
+          },
+          "frequencyMonths": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 12,
+            "description": "Months between payments",
+            "default": 12
+          },
+          "timing": {
+            "type": "string",
+            "enum": [
+              "advance",
+              "arrears"
+            ],
+            "description": "Timing Options: advance (In advance); arrears (In arrears)",
+            "default": "arrears"
+          },
+          "newEndDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "End of (revised) lease term"
+          }
+        },
+        "required": [
+          "event",
+          "effectiveDate",
+          "liabilityCarrying",
+          "rouCarrying",
+          "originalRate",
+          "newPayment",
+          "newEndDate"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ifrs16_lessor",
+      "title": "IFRS 16: Lessor: classification & accounting (61-88)",
+      "description": "Classifies a lease for the lessor using the IFRS 16.63 indicators (ownership transfer, bargain purchase option, major part of economic life, present value of lease payments substantially all of fair value, specialised asset), solving the rate implicit in the lease. For a finance lease, computes the net investment and year-one finance income; for an operating lease, straight-line lease income.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "lease": {
+            "type": "string",
+            "description": "Lease",
+            "default": "Equipment lease (lessor)"
+          },
+          "commencementDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "Commencement date"
+          },
+          "endDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "End of lease term"
+          },
+          "payment": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Lease payment per period"
+          },
+          "frequencyMonths": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 12,
+            "description": "Months between payments",
+            "default": 12
+          },
+          "timing": {
+            "type": "string",
+            "enum": [
+              "advance",
+              "arrears"
+            ],
+            "description": "Timing Options: advance (In advance); arrears (In arrears)",
+            "default": "advance"
+          },
+          "fairValueOfAsset": {
+            "type": "number",
+            "minimum": 0.01,
+            "description": "Fair value of the underlying asset at commencement"
+          },
+          "guaranteedResidual": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Residual value guaranteed (by lessee or third party) [IFRS 16.70(c)]",
+            "default": 0
+          },
+          "unguaranteedResidual": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Unguaranteed residual value [IFRS 16.68]",
+            "default": 0
+          },
+          "initialDirectCosts": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Lessor initial direct costs [IFRS 16.69, IFRS 16.83]",
+            "default": 0
+          },
+          "economicLifeYears": {
+            "type": "number",
+            "minimum": 0.01,
+            "description": "Economic life of the asset (years)"
+          },
+          "ownershipTransfers": {
+            "type": "boolean",
+            "description": "Ownership transfers by the end of the lease term [IFRS 16.63(a)]",
+            "default": false
+          },
+          "bargainPurchaseOption": {
+            "type": "boolean",
+            "description": "Purchase option priced well below expected fair value [IFRS 16.63(b)]",
+            "default": false
+          },
+          "specialisedAsset": {
+            "type": "boolean",
+            "description": "Asset is so specialised only the lessee can use it without major modification [IFRS 16.63(e)]",
+            "default": false
+          },
+          "majorPartThreshold": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Policy: 'major part' of economic life (decimal) [IFRS 16.63(c)]",
+            "default": 0.75
+          },
+          "substantiallyAllThreshold": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Policy: 'substantially all' of fair value (decimal) [IFRS 16.63(d)]",
+            "default": 0.9
+          }
+        },
+        "required": [
+          "commencementDate",
+          "endDate",
+          "payment",
+          "fairValueOfAsset",
+          "economicLifeYears"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ifrs16_sale_and_leaseback",
+      "title": "IFRS 16: Sale and leaseback: seller-lessee (98-103)",
+      "description": "Accounts for a sale and leaseback by the seller-lessee: if the transfer is a sale under IFRS 15, adjusts off-market terms (sale price above fair value as additional financing, below as a prepayment), measures the right-of-use asset as the proportion of the previous carrying amount relating to the right of use retained, and recognises only the gain on the rights transferred (100-101). Otherwise treats the proceeds as a financial liability (103). Notes the 102A subsequent-measurement requirement.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "asset": {
+            "type": "string",
+            "description": "Asset",
+            "default": "Building"
+          },
+          "transactionDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "Transaction date"
+          },
+          "transferIsSale": {
+            "type": "boolean",
+            "description": "Transfer satisfies IFRS 15 requirements to be a sale [IFRS 16.99, IFRS 16.103]",
+            "default": true
+          },
+          "carryingAmount": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Carrying amount of the asset"
+          },
+          "fairValue": {
+            "type": "number",
+            "minimum": 0.01,
+            "description": "Fair value of the asset"
+          },
+          "salePrice": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Sale price"
+          },
+          "leasebackPayment": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Leaseback payment per year"
+          },
+          "leasebackYears": {
+            "type": "number",
+            "minimum": 1,
+            "description": "Leaseback term (years)"
+          },
+          "timing": {
+            "type": "string",
+            "enum": [
+              "arrears",
+              "advance"
+            ],
+            "description": "Leaseback payment timing Options: arrears (In arrears); advance (In advance)",
+            "default": "arrears"
+          },
+          "discountRate": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Discount rate (decimal)"
+          }
+        },
+        "required": [
+          "transactionDate",
+          "carryingAmount",
+          "fairValue",
+          "salePrice",
+          "leasebackPayment",
+          "leasebackYears",
+          "discountRate"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ifrs16_disclosure_checklist",
+      "title": "IFRS 16: Disclosure checklist (51-60, 89-97)",
+      "description": "Generates the tailored IFRS 16 disclosure checklist for lessees (51-60) and lessors (89-97).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "lessee": {
+            "type": "boolean",
+            "description": "Entity is a lessee [IFRS 16.51]",
+            "default": true
+          },
+          "lessor": {
+            "type": "boolean",
+            "description": "Entity is a lessor [IFRS 16.89]",
+            "default": false
+          },
+          "lessorFinance": {
+            "type": "boolean",
+            "description": "Lessor with finance leases [IFRS 16.93]",
+            "default": false
+          },
+          "lessorOperating": {
+            "type": "boolean",
+            "description": "Lessor with operating leases [IFRS 16.95]",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ifrs16_lookup",
+      "title": "IFRS 16: Paragraph & topic lookup",
+      "description": "Searches the IFRS 16 knowledge base by paragraph number or keywords and returns paraphrased requirements with paragraph citations, so answers can be grounded and cited.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Paragraph number or keywords"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ifrs16_transition",
+      "title": "IFRS 16: Lessee transition: modified retrospective options (C5-C10)",
+      "description": "For a former operating lease with level annual payments in arrears, measures the lease liability at the date of initial application (remaining payments at the incremental borrowing rate) and compares the two right-of-use asset options: equal to the liability adjusted for prepaid or accrued payments (no equity effect) or the carrying amount as if IFRS 16 had always applied, discounted at the rate at initial application (difference to opening retained earnings, shown before and after tax).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "annualPayment": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Annual lease payment (paid at year end) [IFRS 16.27]"
+          },
+          "totalTermYears": {
+            "type": "number",
+            "minimum": 1,
+            "description": "Total lease term from commencement (years) [IFRS 16.18]"
+          },
+          "yearsElapsedAtInitialApplication": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Years elapsed at the date of initial application"
+          },
+          "incrementalBorrowingRate": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Incremental borrowing rate at the date of initial application [IFRS 16.C8(a)]"
+          },
+          "prepaidLessAccrued": {
+            "type": "number",
+            "description": "Prepaid (positive) or accrued (negative) lease payments at transition [IFRS 16.C8(b)(ii)]",
+            "default": 0
+          },
+          "taxRate": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Tax rate for the deferred tax effect [IAS 12.22A]",
+            "default": 0
+          }
+        },
+        "required": [
+          "annualPayment",
+          "totalTermYears",
+          "yearsElapsedAtInitialApplication",
+          "incrementalBorrowingRate"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ifrs16_sublease",
+      "title": "IFRS 16: Sublease classification and intermediate lessor accounting (B58, 68)",
+      "description": "Classifies a sublease by reference to the right-of-use asset from the head lease (operating if the head lease uses the short-term exemption; otherwise finance when the sublease covers the major part of the remaining right-of-use term, using a threshold you set as an indicator), and for a finance sublease derecognises the right-of-use asset, recognises the net investment and the gain or loss, while the head lease liability remains.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "headLeaseShortTermExempt": {
+            "type": "boolean",
+            "description": "Head lease accounted for under the short-term exemption [IFRS 16.B58(a)]",
+            "default": false
+          },
+          "headLeaseRemainingYears": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Remaining term of the head lease (years)"
+          },
+          "subleaseTermYears": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Sublease term (years)"
+          },
+          "rightOfUseCarrying": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Carrying amount of the right-of-use asset subleased"
+          },
+          "pvSubleasePayments": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Present value of sublease payments (rate implicit in the sublease) [IFRS 16.68]"
+          },
+          "majorPartThreshold": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Indicator threshold for the major part of the remaining term [IFRS 16.63(c)]",
+            "default": 0.75
+          }
+        },
+        "required": [
+          "headLeaseRemainingYears",
+          "subleaseTermYears",
+          "rightOfUseCarrying",
+          "pvSubleasePayments"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ]
+}

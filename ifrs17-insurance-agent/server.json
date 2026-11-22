@@ -1,0 +1,12 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
+  "name": "io.github.jabran/ifrs17-insurance-agent",
+  "title": "IFRS 17 Insurance Contracts Agent",
+  "description": "Scope and model choice, level of aggregation, GMM initial measurement, CSM roll-forward, PAA,...",
+  "version": "1.0.0",
+  "repository": {
+    "url": "https://github.com/jabran/ifrs-mcp-agents",
+    "source": "github",
+    "subfolder": "ifrs17-insurance-agent"
+  }
+}
