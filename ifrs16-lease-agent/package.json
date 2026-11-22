@@ -1,0 +1,14 @@
+{
+  "name": "ifrs16-lease-agent",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "IFRS 16 Lease Accounting Agent: Lease identification, lessee schedules, modifications, lessor, sale and leaseback and disclosures, with paragraph citations. Demo and educational use only.",
+  "scripts": {
+    "start": "node dist/server.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "SEE LICENSE IN LICENSE.md"
+}
