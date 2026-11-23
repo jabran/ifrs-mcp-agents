@@ -1,5 +1,7 @@
 # IFRS MCP agents
 
+[![IFRS 16 Lease Accounting Agent MCP server](https://mcprush.com/badge/ifrs-16-lease-accounting-agent-mcp/card.svg)](https://mcprush.com/to/ifrs-16-lease-accounting-agent-mcp?ref=badge)
+
 Five read-only MCP servers for IFRS accounting work, sold on mcprush. Each folder is one server: `dist/server.mjs` runs over stdio with Node.js 22 or later, needs no dependencies, makes no network calls and stores nothing.
 
 | Server | Standards | Folder |

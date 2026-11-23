@@ -1,5 +1,7 @@
 # IFRS 16 Lease Accounting Agent
 
+[![IFRS 16 Lease Accounting Agent MCP server](https://mcprush.com/badge/ifrs-16-lease-accounting-agent-mcp/card.svg)](https://mcprush.com/to/ifrs-16-lease-accounting-agent-mcp?ref=badge)
+
 Lease identification, lessee schedules, modifications, lessor, sale and leaseback and disclosures, with paragraph citations.
 
 > FOR DEMONSTRATION AND EDUCATIONAL PURPOSES ONLY. This output is not accounting, audit, tax or legal advice, and no liability whatsoever is assumed for its results or for any decision based on them. Paragraph references point to the IFRS Accounting Standards issued by the IASB; the standards' text is not reproduced. Results depend entirely on the facts entered and must be independently verified by a qualified professional against the current authoritative text before any use.
